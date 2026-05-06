@@ -16,11 +16,15 @@ export interface PathVariables {
 
 export function generatePathVariables(documentPath: string): PathVariables {
     const now = new Date();
-    const filename = documentPath.split('/').pop() || 'untitled';
+    const pathSegments = documentPath.split('/');
+    const filename = pathSegments.pop() || 'untitled';
+    const directoryPath = pathSegments.join('/');
+    const extensionStart = filename.lastIndexOf('.');
+    const noteName = extensionStart > 0 ? filename.substring(0, extensionStart) : filename;
     
     return {
-        path: documentPath,
-        notename: filename,
+        path: directoryPath,
+        notename: noteName,
         date: now.toISOString().split('T')[0],
         time: now.toISOString().split('T')[1].split('.')[0].replace(/:/g, '-'),
         originalName: filename,

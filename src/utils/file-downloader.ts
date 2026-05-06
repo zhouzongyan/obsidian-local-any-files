@@ -106,7 +106,7 @@ export class FileDownloader {
 
 		// Replace variables in path
 		Object.entries(this.variables).forEach(([key, value]) => {
-			path = path.replace(`\${${key}}`, this.sanitizePath(value));
+			path = path.split(`\${${key}}`).join(this.sanitizePath(value));
 		});
 
 		// Generate the filename using the pattern
@@ -118,7 +118,7 @@ export class FileDownloader {
 		};
 
 		Object.entries(fileVariables).forEach(([key, value]) => {
-			generatedFileName = generatedFileName.replace(`\${${key}}`, this.sanitizePath(value));
+			generatedFileName = generatedFileName.split(`\${${key}}`).join(this.sanitizePath(value));
 		});
 
 		// Ensure the filename has the correct extension
@@ -127,10 +127,10 @@ export class FileDownloader {
 		}
 
 		// Sanitize the final path
-		path = this.sanitizePath(path);
+		path = this.normalizeVaultPath(this.sanitizePath(path));
 		generatedFileName = this.sanitizePath(generatedFileName);
 
-		return `${path}/${generatedFileName}`;
+		return this.normalizeVaultPath(`${path}/${generatedFileName}`);
 	}
 
 	async downloadFile(url: string, fileName: string, isMarkdownImage = false): Promise<DownloadResult> {
@@ -166,7 +166,9 @@ export class FileDownloader {
 
 			// Ensure the directory exists before saving
 			const dirPath = localPath.substring(0, localPath.lastIndexOf('/'));
-			await this.plugin.app.vault.adapter.mkdir(dirPath);
+			if (dirPath) {
+				await this.plugin.app.vault.adapter.mkdir(dirPath);
+			}
 
 			// Save the file
 			await this.saveFile(response, localPath);
@@ -188,6 +190,13 @@ export class FileDownloader {
 	private sanitizePath(path: string): string {
 		// Replace spaces and other common illegal characters with underscores
 		return path.replace(/[\s<>:"\\|?*]/g, '_');
+	}
+
+	private normalizeVaultPath(path: string): string {
+		return path
+			.replace(/\/+/g, '/')
+			.replace(/^\/+/, '')
+			.replace(/\/+$/, '');
 	}
 
 	private async saveFile(response: RequestUrlResponse, path: string): Promise<void> {
